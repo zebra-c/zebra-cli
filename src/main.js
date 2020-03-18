@@ -1,5 +1,6 @@
 const program = require('commander');
-const path = require('path')
+const path = require('path');
+const chalk = require('chalk');
 const { version } = require('./utils/constants');
 
 const actionsMap = {
@@ -19,7 +20,7 @@ const actionsMap = {
     ],
   },
   '*': {
-    description: 'command not found',
+    description: 'Unknown command',
   },
 };
 
@@ -28,9 +29,10 @@ Object.keys(actionsMap).forEach((action) => {
     .command(action)
     .alias(actionsMap[action].alias)
     .description(actionsMap[action].description)
-    .action(() => {
+    .action((cmd) => {
       if (action === '*') {
-        console.log(acitonMap[action].description);
+        program.outputHelp()
+        console.log(`  ` + chalk.red(`Unknown command ${chalk.yellow(cmd.args)}.`))
       } else {
         require(path.resolve(__dirname, action))(...process.argv.slice(3));
       }
@@ -47,4 +49,4 @@ program.on('--help', () => {
 });
 
 program.version(version)
-  .parse(process.argv); // process.argv就是用户在命令行中传入的参数
+  .parse(process.argv);

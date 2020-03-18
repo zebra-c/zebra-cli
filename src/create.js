@@ -1,6 +1,6 @@
 const axios = require('axios');
 const Inquirer = require('inquirer');
-const ora = require('ora');
+const { wrapFetchAddLoding } = require('./utils');
 const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
@@ -21,14 +21,6 @@ const fetchRepoList = async () => {
 const fetchTagList = async (repo) => {
   const { data } = await axios.get(`https://api.github.com/repos/${name}/${repo}/tags`);
   return data;
-};
-
-const wrapFetchAddLoding = (fn, message) => async (...args) => {
-  const spinner = ora(message);
-  spinner.start(); // 开始
-  const r = await fn(...args);
-  spinner.succeed(); // 结束
-  return r;
 };
  
 const download = async (repo, tag) => {
