@@ -1,71 +1,102 @@
-const axios = require('axios');
-const Inquirer = require('inquirer');
-const { wrapFetchAddLoding } = require('./utils');
-const path = require('path');
-const fs = require('fs');
-const { promisify } = require('util');
-let ncp = require('ncp');
-const MetalSmith = require('metalsmith');
-let { render } = require('consolidate').ejs;
-let downLoadGit = require('download-git-repo');
+const axios = require("axios");
+const Inquirer = require("inquirer");
+const chalk = require("chalk");
+const execa = require("execa");
+const fsExtra = require("fs-extra");
+const { wrapFetchAddLoding } = require("./utils");
+const path = require("path");
+const { promisify } = require("util");
+let ncp = require("ncp");
+const MetalSmith = require("metalsmith");
+let { render } = require("consolidate").ejs;
 render = promisify(render);
-downLoadGit = promisify(downLoadGit);
 ncp = promisify(ncp);
 
-const { name, DOWN_NAME, PROMPTS_NAME, SCAN_FILE } = require('./utils/constants');
+const {
+  name,
+  DOWN_NAME,
+  PROMPTS_NAME,
+  SCAN_FILE,
+  TOKEN,
+} = require("./utils/constants");
+const log = console.log;
+
 const fetchRepoList = async () => {
-  const { data } = await axios.get(`https://api.github.com/orgs/${name}/repos`);
+  const { data } = await axios.get(
+    `http://zgit.zebra-c.com/api/v4/groups/${name}/projects`,
+    {
+      headers: {
+        "PRIVATE-TOKEN": TOKEN,
+      },
+    }
+  );
   return data;
 };
 
-const fetchTagList = async (repo) => {
-  const { data } = await axios.get(`https://api.github.com/repos/${name}/${repo}/tags`);
-  return data;
-};
- 
-const download = async (repo, tag) => {
-  let api = `${name}/${repo}`;
-  if (tag) {
-    api += `#${tag}`;
+const download = async (repo) => {
+  const originTempFilePath = path.resolve(DOWN_NAME, repo);
+  const existFile = await fsExtra.pathExists(originTempFilePath);
+  if (existFile) {
+    fsExtra.removeSync(originTempFilePath);
   }
-  const dest = `${DOWN_NAME}/${repo}`; 
-  await downLoadGit(api, dest);
-  return dest;
+  try {
+    execa.commandSync(
+      `git clone git@zgit.zebra-c.com:${name}/${repo}.git ${originTempFilePath}`
+    );
+    return originTempFilePath;
+  } catch (e) {
+    log(chalk.red(e));
+    return false;
+  }
 };
 
 module.exports = async (projectName) => {
-  let repos = await wrapFetchAddLoding(fetchRepoList, 'fetching repo list')();
+  const current = path.join(path.resolve(), projectName);
+  if (!TOKEN) {
+    console.log(
+      chalk.red("\n你需要先初始化 git token\n"),
+      chalk.yellow("zebra-cli config [你的token]")
+    );
+    return false;
+  }
+  if (fsExtra.pathExistsSync(current)) {
+    const { del } = await Inquirer.prompt({
+      name: "del",
+      type: "confirm",
+      message: `${projectName} 在当前目录中已存在, 请确认是否删除`,
+    });
+    if (!del) {
+      return;
+    }
+    fsExtra.removeSync(current);
+  }
+
+  let repos = await wrapFetchAddLoding(fetchRepoList, "fetching repo list")();
   repos = repos.map((item) => item.name);
   const { repo } = await Inquirer.prompt({
-    name: 'repo',
-    type: 'list',
-    message: '请选择项目名称',
+    name: "repo",
+    type: "list",
+    message: "请选择项目名称",
     choices: repos,
   });
 
-  let tags = await wrapFetchAddLoding(fetchTagList, 'fetching tag list')(repo);
-  tags = tags.map((item) => item.name);
-  let tag = ''
-  if (tags.length > 0) {
-    const { tag: _tag } = await Inquirer.prompt({
-      name: 'tag',
-      type: 'list',
-      message: '请选择该项目 tag',
-      choices: tags,
-    });
-    tag = _tag;
+  let target = await wrapFetchAddLoding(download, "download template")(repo);
+  if (!target) {
+    log(chalk.red("未成功 git clone"));
+    return;
   }
-  let target = await wrapFetchAddLoding(download, 'download template')(repo, tag);
-  
-  if (!fs.existsSync(path.join(target, PROMPTS_NAME))) {
-    await ncp(target, path.join(path.resolve(), projectName));
+
+  if (!fsExtra.pathExistsSync(path.join(target, PROMPTS_NAME))) {
+    await ncp(target, current);
   } else {
     await new Promise((resovle, reject) => {
       MetalSmith(__dirname)
         .source(target)
-        .destination(path.join(path.resolve(), projectName))
+        .destination(current)
         .use(async (files, metal, done) => {
-          const result = await Inquirer.prompt(require(path.join(target, PROMPTS_NAME)));
+          const result = await Inquirer.prompt(
+            require(path.join(target, PROMPTS_NAME))
+          );
           const data = metal.metadata();
           Object.assign(data, result);
           delete files[PROMPTS_NAME];
@@ -73,14 +104,16 @@ module.exports = async (projectName) => {
         })
         .use((files, metal, done) => {
           Reflect.ownKeys(files).forEach(async (file) => {
-            let content = files[file].contents.toString();
-            if (SCAN_FILE.includes(file)) {
-              if (content.includes('<%')) {
+            const ext = path.extname(file);
+            if (SCAN_FILE.includes(file) || SCAN_FILE.includes(ext)) {
+              let content = files[file].contents.toString();
+              if (content.includes("<%")) {
                 content = await render(content, metal.metadata());
                 files[file].contents = Buffer.from(content);
               }
             }
           });
+          log(chalk.green("***************** 👋创建成功 ***************"));
           done();
         })
         .build((err) => {
@@ -90,6 +123,6 @@ module.exports = async (projectName) => {
             reject();
           }
         });
-      });
-    };
+    });
+  }
 };

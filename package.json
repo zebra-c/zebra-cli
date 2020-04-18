@@ -1,6 +1,6 @@
 {
-  "name": "zebra-cli",
-  "version": "1.0.1",
+  "name": "@zebra-c/zebra-cli",
+  "version": "1.0.8",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,12 +9,31 @@
   "bin": {
     "zebra-cli": "./bin/www"
   },
-  "keywords": [],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "gitlab",
+    "zebra-c"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.1"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "chalk": "^4.0.0",
+    "commander": "^5.0.0",
+    "consolidate": "^0.15.1",
+    "ejs": "^3.0.2",
+    "execa": "^4.0.0",
+    "fs-extra": "^9.0.0",
+    "inquirer": "^7.1.0",
+    "metalsmith": "^2.3.0",
+    "ncp": "^2.0.0",
+    "ora": "^4.0.3"
   }
 }
