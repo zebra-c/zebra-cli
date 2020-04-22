@@ -14,6 +14,7 @@ ncp = promisify(ncp);
 
 const {
   name,
+  git,
   DOWN_NAME,
   PROMPTS_NAME,
   SCAN_FILE,
@@ -23,7 +24,7 @@ const log = console.log;
 
 const fetchRepoList = async () => {
   const { data } = await axios.get(
-    `http://zgit.zebra-c.com/api/v4/groups/${name}/projects`,
+    `http://${git}/api/v4/groups/${name}/projects`,
     {
       headers: {
         "PRIVATE-TOKEN": TOKEN,
@@ -41,7 +42,7 @@ const download = async (repo) => {
   }
   try {
     execa.commandSync(
-      `git clone git@zgit.zebra-c.com:${name}/${repo}.git ${originTempFilePath}`
+      `git clone git@${git}:${name}/${repo}.git ${originTempFilePath}`
     );
     return originTempFilePath;
   } catch (e) {
@@ -51,6 +52,10 @@ const download = async (repo) => {
 };
 
 module.exports = async (projectName) => {
+  if (!projectName) {
+    log(chalk.red("请输入项目名称， 如 zebra-cli create your-project"));
+    return false;
+  }
   const current = path.join(path.resolve(), projectName);
   if (!TOKEN) {
     console.log(
@@ -125,4 +130,6 @@ module.exports = async (projectName) => {
         });
     });
   }
+  const folder = path.join(process.cwd(), "./", projectName, ".git");
+  execa.commandSync(`rm -rf ${folder}`);
 };

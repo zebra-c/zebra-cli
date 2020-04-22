@@ -12,7 +12,7 @@ const actionsMap = {
   config: {
     description: "config info",
     alias: "c",
-    examples: ["zebra-cli config get <k>", "zebra-cli config set <k> <v>"],
+    examples: ["zebra-cli config"],
   },
   "*": {
     description: "Unknown command",
