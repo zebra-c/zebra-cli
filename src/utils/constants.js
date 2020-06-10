@@ -25,7 +25,7 @@ try {
 
 module.exports = {
   name: "frontendcli",
-  git: "zgit.zebra-c.com",
+  git: "192.168.11.206",
   version,
   DOWN_NAME,
   PROMPTS_NAME,

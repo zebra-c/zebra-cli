@@ -1,7 +1,7 @@
 {
   "name": "@zebra-c/zebra-cli",
-  "version": "1.0.9",
-  "description": "",
+  "version": "1.1.0",
+  "description": "zebra-c",
   "main": "index.js",
   "scripts": {
     "lint": "eslint src"
