@@ -15,6 +15,7 @@ const actionsMap = {
     examples: ["zebra-cli config"],
   },
   "*": {
+    alias: "@",
     description: "Unknown command",
   },
 };
